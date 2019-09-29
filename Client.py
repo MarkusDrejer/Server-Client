@@ -22,7 +22,7 @@ heartBeatmsg = 'con-h 0x00'
 key = 1
 
 def threadBeat(name):
-    while(True):
+    while(heartBeat == 'True'):
         time.sleep(3)
         sock.sendto(heartBeatmsg.encode(), server_address)
 

@@ -31,7 +31,6 @@ s = sched.scheduler(time.time, time.sleep)
 def do_something(sc):
     global packetsSecond
     packetsSecond = 0
-    print(packetsSecond)
     s.enter(1, 0, do_something, (s,))
 
 def threadPacket(name):
