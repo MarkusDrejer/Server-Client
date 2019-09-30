@@ -19,25 +19,24 @@ connected = False
 timeoutAck = 'con-res 0xFF'
 heartBeatmsg = 'con-h 0x00'
 
-key = 1
-
 def threadBeat(name):
     while(heartBeat == 'True'):
         time.sleep(3)
         sock.sendto(heartBeatmsg.encode(), server_address)
 
 def threadx(name):
-    global key
+    global connected
 
     while(True):
         data, address = sock.recvfrom(4096)
         if(data == "con-res 0xFE".encode()):
             sock.sendto(timeoutAck.encode(), server_address)
             print("YOU GOT FUCKED. timed out")
-            key = 0
+            connected = False
             break
         else:
             print(data)
+
 
 try:
     # Send data
@@ -62,13 +61,7 @@ try:
             y.start()
 
     while connected:
-        if(key == 1):
             sock.sendto(input().encode(), server_address)
-        else:
-            connected = False
-            print(connected)
-
-        # data, address = sock.recvfrom(4096)
 
 
 finally:
