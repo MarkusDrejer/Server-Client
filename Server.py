@@ -38,6 +38,10 @@ def threadPacket(name):
     s.run()
 
 while True:
+    #Added as the handshake could be bypassed if at least 1 client had a prior succesfull connection,
+    # as SynAck was then never set back to false
+    SynAck = False
+    # ////////////
     sock.settimeout(None)
     print('\nWaiting for a client')
     data, address = sock.recvfrom(4096)
