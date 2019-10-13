@@ -37,10 +37,6 @@ def threadPacket(name):
     s.run()
 
 while True:
-    # Added as the handshake could be bypassed if at least 1 client had a prior successfull connection,
-    # as SynAck was then never set back to false
-    SynAck = False
-    # ////////////
     sock.settimeout(None)
     print('\nWaiting for a client')
     data, address = sock.recvfrom(4096)
@@ -51,6 +47,8 @@ while True:
         sent = sock.sendto((connectionCode + 'accept ' + IPAddr).encode(), address)
         print('sent {} bytes back to {}'.format(sent, address))
         data, address = sock.recvfrom(4096)
+
+        # people can access from here.
         if data == (connectionCode + 'accept').encode():
             print(data)
             print('Established connection to Client')
