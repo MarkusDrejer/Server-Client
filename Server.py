@@ -19,12 +19,10 @@ s = sched.scheduler(time.time, time.sleep)
 def start_server():
     hostname = socket.gethostbyname(socket.gethostname())
     port = 10000
-
     sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
 
     try:
-        sock.bind(("", port))
+        sock.bind((hostname, port))
     except:
         print("Bind failed. Error : " + str(sys.exc_info()))
         sys.exit()
@@ -73,15 +71,20 @@ def messageHandling(newConnection):
             if packetsSecond < int(packets):
                 print('\nWaiting for input...')
                 data, address = newConnection.recvfrom(4096)
-                packetsSecond += 1
-                print('Total packets from client:')
-                print(packetsSecond)
-                res += 1
-                message = 'msg-%s %s' % (res, data)
-                res += 1
-                response = 'res-%s - I am server' % res
-                print(message)
-                newConnection.send(response.encode())
+                if data == 'disconnect'.encode():
+                    newConnection.close()
+                    print("This client closed the connection")
+                    break
+                else:
+                    packetsSecond += 1
+                    print('Packets from client this second:')
+                    print(packetsSecond)
+                    res += 1
+                    message = 'msg-%s %s' % (res, data)
+                    res += 1
+                    response = 'res-%s - I am server' % res
+                    print(message)
+                    newConnection.send(response.encode())
             else:
                 newConnection.send('Too many packages, please wait'.encode())
                 time.sleep(1)

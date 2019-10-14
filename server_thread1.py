@@ -22,7 +22,13 @@ def start_server():
    host = "127.0.0.1"
    port = 8000 # arbitrary non-privileged port
    soc = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+
+   # //////////////////////////////////////////////////////////////////////////////////
+   # This could be important but as of now does not affect our code, but keep it in mind
    soc.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+   # //////////////////////////////////////////////////////////////////////////////////
+   # //////////////////////////////////////////////////////////////////////////////////
+
    print("Socket created")
    try:
       soc.bind((host, port))
