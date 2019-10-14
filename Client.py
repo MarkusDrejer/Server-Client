@@ -16,18 +16,18 @@ connectionCode = 'com-0: '
 connected = False
 timeoutAck = 'con-res 0xFF'
 heartBeatmsg = 'con-h 0x00'
-inputCheck = 0
+heartBeatIntervalCheck = 0
 
 def threadBeat():
-    global inputCheck
+    global heartBeatIntervalCheck
 
     while heartBeat == "True":
-        if inputCheck == 3:
+        if heartBeatIntervalCheck == 3:
             sock.send(heartBeatmsg.encode())
-            inputCheck = 0
+            heartBeatIntervalCheck = 0
         else:
             time.sleep(1)
-            inputCheck += 1
+            heartBeatIntervalCheck += 1
 
 def threadx():
     global connected
@@ -63,7 +63,7 @@ try:
 
     while connected:
         sock.send(input().encode())
-        inputCheck = 0
+        heartBeatIntervalCheck = 0
 
 
 finally:
