@@ -7,7 +7,6 @@ configur = ConfigParser()
 configur.read('opt.conf')
 heartBeat = configur.get('ServerSettings', 'KeepAlive')
 
-# Create a UDP socket
 sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 
 hostname = socket.gethostname()
@@ -17,16 +16,23 @@ connectionCode = 'com-0: '
 connected = False
 timeoutAck = 'con-res 0xFF'
 heartBeatmsg = 'con-h 0x00'
+inputCheck = 0
 
-def threadBeat(name):
-    while(heartBeat == 'True'):
-        time.sleep(3)
-        sock.send(heartBeatmsg.encode())
+def threadBeat():
+    global inputCheck
 
-def threadx(name):
+    while heartBeat == "True":
+        if inputCheck == 3:
+            sock.send(heartBeatmsg.encode())
+            inputCheck = 0
+        else:
+            time.sleep(1)
+            inputCheck += 1
+
+def threadx():
     global connected
 
-    while(True):
+    while True:
         data, address = sock.recvfrom(4096)
         if(data == "con-res 0xFE".encode()):
             sock.send(timeoutAck.encode())
@@ -36,14 +42,11 @@ def threadx(name):
         else:
             print(data)
 
-
 try:
-    # Send data
     sock.connect((IPAddr, 10000))
     print('Sending IP for Syn')
     sock.send((connectionCode + IPAddr).encode())
 
-    # Receive response
     print('waiting for Syn/Ack')
     data, address = sock.recvfrom(4096)
     print('received {!r}'.format(data))
@@ -55,13 +58,12 @@ try:
         print(data)
         if data == 'Connection Established'.encode():
             connected = True
-            x = threading.Thread(target=threadx, args=(1,))
-            x.start()
-            y = threading.Thread(target=threadBeat, args=(1,))
-            y.start()
+            threading.Thread(target=threadx).start()
+            threading.Thread(target=threadBeat).start()
 
     while connected:
-            sock.send(input().encode())
+        sock.send(input().encode())
+        inputCheck = 0
 
 
 finally:

@@ -9,24 +9,22 @@ configur = ConfigParser()
 configur.read('opt.conf')
 packets = configur.get('ServerSettings', 'PackageSize')
 
+packetsSecond = 0
 connectionCode = 'com-0: '
 timeoutMsg = 'con-res 0xFE'
 timeout = 4
 s = sched.scheduler(time.time, time.sleep)
 
-def main():
-   start_server()
 
 def start_server():
     hostname = socket.gethostbyname(socket.gethostname())
+    port = 10000
 
-    # Create a UDP socket
     sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
 
-    # Bind the socket to the port
     try:
-        sock.bind((hostname, 10000))
+        sock.bind(("", port))
     except:
         print("Bind failed. Error : " + str(sys.exc_info()))
         sys.exit()
@@ -34,55 +32,47 @@ def start_server():
     sock.listen(2)
 
     while True:
-        connection, address = sock.accept()
+        print('\nWaiting for a client')
+        newConnection, address = sock.accept()
         try:
-            threading.Thread(target=threadClient, args=(connection, hostname)).start()
+            threading.Thread(target=threadClient, args=(newConnection, hostname)).start()
         except:
             print("Thread did not start.")
             traceback.print_exc()
             sock.close()
 
-def do_something(sc):
-    global packetsSecond
-    packetsSecond = 0
-    s.enter(1, 0, do_something, (s,))
 
-def threadPacket(name):
-    s.enter(1, 0, do_something, (s,))
-    s.run()
-
-def threadClient(sock, hostname):
-    print('\nWaiting for a client')
-    data, address = sock.recvfrom(4096)
+def threadClient(newConnection, hostname):
+    data, address = newConnection.recvfrom(4096)
     print('received {} bytes from {}'.format(len(data), address))
     print(data)
 
     if data == (connectionCode + hostname).encode():
-        sent = sock.send((connectionCode + 'accept ' + hostname).encode())
+        sent = newConnection.send((connectionCode + 'accept ' + hostname).encode())
         print('sent {} bytes back to {}'.format(sent, address))
-        data, address = sock.recvfrom(4096)
+        data, address = newConnection.recvfrom(4096)
         if data == (connectionCode + 'accept').encode():
             print(data)
             print('Established connection to Client')
-            sock.send('Connection Established'.encode())
-            messageHandling(sock)
+            newConnection.send('Connection Established'.encode())
+            messageHandling(newConnection)
     else:
-        sent = sock.send('Server connection denied'.encode())
+        sent = newConnection.send('Server connection denied'.encode())
         print('sent {} bytes back to {}'.format(sent, address))
         print('Denied Client connection access')
+        newConnection.close()
 
 
-def messageHandling(newClient):
+def messageHandling(newConnection):
     res = -1
-    packetsSecond = 0
-    i = threading.Thread(target=threadPacket, args=(1,))
-    i.start()
+    global packetsSecond
+    threading.Thread(target=threadPacket).start()
     while True:
-        newClient.settimeout(timeout)
+        newConnection.settimeout(timeout)
         try:
             if packetsSecond < int(packets):
                 print('\nWaiting for input...')
-                data, address = newClient.recvfrom(4096)
+                data, address = newConnection.recvfrom(4096)
                 packetsSecond += 1
                 print('Total packets from client:')
                 print(packetsSecond)
@@ -91,15 +81,26 @@ def messageHandling(newClient):
                 res += 1
                 response = 'res-%s - I am server' % res
                 print(message)
-                newClient.send(response.encode())
+                newConnection.send(response.encode())
             else:
-                newClient.send('Too many packages, please wait'.encode())
+                newConnection.send('Too many packages, please wait'.encode())
+                time.sleep(1)
         except socket.timeout:
             print('The Client timed out')
-            newClient.send(timeoutMsg.encode())
-            data, address = newClient.recvfrom(4096)
+            newConnection.send(timeoutMsg.encode())
+            data, address = newConnection.recvfrom(4096)
             print(data)
+            newConnection.close()
             break
 
+def do_something():
+    global packetsSecond
+    packetsSecond = 0
+    s.enter(1, 0, do_something)
+
+def threadPacket():
+    s.enter(1, 0, do_something)
+    s.run()
+
 if __name__ == "__main__":
-   main()
+   start_server()
