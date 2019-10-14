@@ -2,88 +2,105 @@ import socket
 from configparser import ConfigParser
 import sched, time
 import threading
+import sys
+import traceback
 
 configur = ConfigParser()
 configur.read('opt.conf')
 packets = configur.get('ServerSettings', 'PackageSize')
 
-
-# Create a UDP socket
-sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-hostname = socket.gethostname()
-IPAddr = socket.gethostbyname(hostname)
-
-# Bind the socket to the port
-server_address = (IPAddr, 10000)
-print('starting up on {} port {}'.format(*server_address))
-sock.bind(server_address)
-
+packetsSecond = 0
 connectionCode = 'com-0: '
 timeoutMsg = 'con-res 0xFE'
-
-SynAck = False
-res = -1
 timeout = 4
-packetsSecond = 0
 s = sched.scheduler(time.time, time.sleep)
 
-def do_something(sc):
-    global packetsSecond
-    packetsSecond = 0
-    s.enter(1, 0, do_something, (s,))
 
-def threadPacket(name):
-    s.enter(1, 0, do_something, (s,))
-    s.run()
+def start_server():
+    hostname = socket.gethostbyname(socket.gethostname())
+    port = 10000
 
-while True:
-    # Added as the handshake could be bypassed if at least 1 client had a prior successfull connection,
-    # as SynAck was then never set back to false
-    SynAck = False
-    # ////////////
-    sock.settimeout(None)
-    print('\nWaiting for a client')
-    data, address = sock.recvfrom(4096)
+    sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+
+    try:
+        sock.bind(("", port))
+    except:
+        print("Bind failed. Error : " + str(sys.exc_info()))
+        sys.exit()
+
+    sock.listen(2)
+
+    while True:
+        print('\nWaiting for a client')
+        newConnection, address = sock.accept()
+        try:
+            threading.Thread(target=threadClient, args=(newConnection, hostname)).start()
+        except:
+            print("Thread did not start.")
+            traceback.print_exc()
+            sock.close()
+
+
+def threadClient(newConnection, hostname):
+    data, address = newConnection.recvfrom(4096)
     print('received {} bytes from {}'.format(len(data), address))
     print(data)
 
-    if data == (connectionCode + IPAddr).encode():
-        sent = sock.sendto((connectionCode + 'accept ' + IPAddr).encode(), address)
+    if data == (connectionCode + hostname).encode():
+        sent = newConnection.send((connectionCode + 'accept ' + hostname).encode())
         print('sent {} bytes back to {}'.format(sent, address))
-        data, address = sock.recvfrom(4096)
+        data, address = newConnection.recvfrom(4096)
         if data == (connectionCode + 'accept').encode():
             print(data)
             print('Established connection to Client')
-            sock.sendto('Connection Established'.encode(), address)
-            SynAck = True
-            i = threading.Thread(target=threadPacket, args=(1,))
-            i.start()
+            newConnection.send('Connection Established'.encode())
+            messageHandling(newConnection)
     else:
-        sent = sock.sendto('Server connection denied'.encode(), address)
+        sent = newConnection.send('Server connection denied'.encode())
         print('sent {} bytes back to {}'.format(sent, address))
         print('Denied Client connection access')
-        SynAck = False
+        newConnection.close()
 
-    while SynAck:
-        sock.settimeout(timeout)
+
+def messageHandling(newConnection):
+    res = -1
+    global packetsSecond
+    threading.Thread(target=threadPacket).start()
+    while True:
+        newConnection.settimeout(timeout)
         try:
             if packetsSecond < int(packets):
                 print('\nWaiting for input...')
-                data, address = sock.recvfrom(4096)
+                data, address = newConnection.recvfrom(4096)
                 packetsSecond += 1
-                print('Packets this second:')
+                print('Total packets from client:')
                 print(packetsSecond)
                 res += 1
                 message = 'msg-%s %s' % (res, data)
                 res += 1
                 response = 'res-%s - I am server' % res
                 print(message)
-                sock.sendto(response.encode(), address)
+                newConnection.send(response.encode())
             else:
-                sock.sendto('Too many packages, please wait'.encode(), address)
+                newConnection.send('Too many packages, please wait'.encode())
+                time.sleep(1)
         except socket.timeout:
             print('The Client timed out')
-            sock.sendto(timeoutMsg.encode(), address)
-            data, address = sock.recvfrom(4096)
+            newConnection.send(timeoutMsg.encode())
+            data, address = newConnection.recvfrom(4096)
             print(data)
+            newConnection.close()
             break
+
+def do_something():
+    global packetsSecond
+    packetsSecond = 0
+    s.enter(1, 0, do_something)
+
+def threadPacket():
+    s.enter(1, 0, do_something)
+    s.run()
+
+if __name__ == "__main__":
+   start_server()
