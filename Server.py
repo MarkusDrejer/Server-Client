@@ -3,7 +3,6 @@ from configparser import ConfigParser
 import sched, time
 import threading
 import sys
-import traceback
 
 configur = ConfigParser()
 configur.read('opt.conf')
@@ -36,7 +35,6 @@ def start_server():
             threading.Thread(target=threadClient, args=(newConnection, hostname)).start()
         except:
             print("Thread did not start.")
-            traceback.print_exc()
             sock.close()
 
 
