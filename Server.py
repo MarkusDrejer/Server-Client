@@ -1,6 +1,6 @@
 import socket
 from configparser import ConfigParser
-import sched, time
+import time
 import threading
 import sys
 
@@ -12,7 +12,6 @@ packetsSecond = 0
 connectionCode = 'com-0: '
 timeoutMsg = 'con-res 0xFE'
 timeout = 4
-s = sched.scheduler(time.time, time.sleep)
 
 
 def start_server():
@@ -94,14 +93,13 @@ def messageHandling(newConnection):
             newConnection.close()
             break
 
-def do_something():
-    global packetsSecond
-    packetsSecond = 0
-    s.enter(1, 0, do_something)
 
 def threadPacket():
-    s.enter(1, 0, do_something)
-    s.run()
+    global packetsSecond
+
+    while True:
+        packetsSecond = 0
+        time.sleep(1)
 
 if __name__ == "__main__":
    start_server()
