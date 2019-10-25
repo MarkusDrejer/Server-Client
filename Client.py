@@ -21,7 +21,6 @@ heartBeatIntervalCheck = 0
 
 def threadBeat():
     global heartBeatIntervalCheck
-
     while heartBeat == "True" and connected:
         if heartBeatIntervalCheck == 3:
             sock.sendto('con-h 0x00'.encode(), address)
@@ -32,16 +31,18 @@ def threadBeat():
 
 def threadx():
     global connected
-
-    while(True):
-        data, address = sock.recvfrom(4096)
-        if(data == "con-res 0xFE".encode()):
-            sock.sendto('con-res 0xFF'.encode(), server_address)
-            print("YOU GOT FUCKED. timed out")
-            connected = False
-            break
-        else:
-            print(data)
+    try:
+        while(connected):
+            data, address = sock.recvfrom(4096)
+            if(data == "con-res 0xFE".encode()):
+                sock.sendto('con-res 0xFF'.encode(), server_address)
+                print("YOU GOT FUCKED. timed out")
+                connected = False
+                break
+            else:
+                print(data)
+    except:
+        print("Listening thread closed")
 
 
 try:
@@ -73,4 +74,5 @@ try:
 
 finally:
     print('closing socket')
+    connected = False
     sock.close()

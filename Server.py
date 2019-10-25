@@ -61,6 +61,9 @@ while True:
             if packetsSecond < int(packets):
                 print('\nWaiting for input...')
                 data, address = sock.recvfrom(4096)
+                if data == 'disconnect'.encode():
+                    print("Client closed the connection")
+                    break
                 packetsSecond += 1
                 print('Packets this second:')
                 print(packetsSecond)
