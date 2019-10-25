@@ -1,5 +1,6 @@
 import socket
 from configparser import ConfigParser
+from datetime import datetime
 import time
 import threading
 
@@ -48,6 +49,14 @@ while True:
             print('Established connection to Client')
             sock.sendto('Connection Established'.encode(), address)
             SynAck = True
+
+            # WRITE TO FILE
+            dateTimeObj = datetime.now()
+            timestampStr = dateTimeObj.strftime("%d-%b-%Y (%H:%M:%S)")
+            f = open("log.txt", "a+")
+            f.write("Successfull Handshake with: " + IPAddr + " at " + timestampStr + "\n")
+            f.close()
+
             threading.Thread(target=threadPacket).start()
     else:
         sent = sock.sendto('Server connection denied'.encode(), address)
