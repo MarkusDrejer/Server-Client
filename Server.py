@@ -62,6 +62,14 @@ while True:
         sent = sock.sendto('Server connection denied'.encode(), address)
         print('sent {} bytes back to {}'.format(sent, address))
         print('Denied Client connection access')
+
+        # WRITE TO FILE
+        dateTimeObj = datetime.now()
+        timestampStr = dateTimeObj.strftime("%d-%b-%Y (%H:%M:%S)")
+        f = open("log.txt", "a+")
+        f.write("Failed Handshake with: " + IPAddr + " at " + timestampStr + "\n")
+        f.close()
+
         SynAck = False
 
     while SynAck:
