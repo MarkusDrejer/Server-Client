@@ -31,6 +31,13 @@ def threadPacket():
         packetsSecond = 0
         time.sleep(1)
 
+def writeToFile(text):
+    dateTimeObj = datetime.now()
+    timestampStr = dateTimeObj.strftime("%d-%b-%Y (%H:%M:%S)")
+    f = open("log.txt", "a+")
+    f.write(text + " Handshake with: " + IPAddr + " at " + timestampStr + "\n")
+    f.close()
+
 while True:
     SynAck = False
     sock.settimeout(None)
@@ -49,12 +56,7 @@ while True:
             sock.sendto('Connection Established'.encode(), address)
             SynAck = True
 
-            # WRITE TO FILE
-            dateTimeObj = datetime.now()
-            timestampStr = dateTimeObj.strftime("%d-%b-%Y (%H:%M:%S)")
-            f = open("log.txt", "a+")
-            f.write("Successfull Handshake with: " + IPAddr + " at " + timestampStr + "\n")
-            f.close()
+            writeToFile("Accepted")
 
             threading.Thread(target=threadPacket).start()
     else:
@@ -62,12 +64,7 @@ while True:
         print('sent {} bytes back to {}'.format(sent, address))
         print('Denied Client connection access')
 
-        # WRITE TO FILE
-        dateTimeObj = datetime.now()
-        timestampStr = dateTimeObj.strftime("%d-%b-%Y (%H:%M:%S)")
-        f = open("log.txt", "a+")
-        f.write("Failed Handshake with: " + IPAddr + " at " + timestampStr + "\n")
-        f.close()
+        writeToFile("Failed")
 
         SynAck = False
 
