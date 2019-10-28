@@ -9,21 +9,22 @@ heartBeat = configur.get('ServerSettings', 'KeepAlive')
 
 sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
 
-
 hostname = socket.gethostname()
 IPAddr = socket.gethostbyname(hostname)
 server_address = (IPAddr, 10000)
 
-
 connectionCode = 'com-0: '
 connected = False
 heartBeatIntervalCheck = 0
+res = 0
 
 def threadBeat():
     global heartBeatIntervalCheck
+    global res
     while heartBeat == "True" and connected:
         if heartBeatIntervalCheck == 3:
             sock.sendto('con-h 0x00'.encode(), address)
+            res += 2
             heartBeatIntervalCheck = 0
         else:
             time.sleep(1)
@@ -40,10 +41,12 @@ def threadx():
                 connected = False
                 break
             else:
-                print(data)
+                if data.startswith("res-".encode()):
+                    print(data)
+                elif data == 'Something went wrong'.encode():
+                    print(data)
     except:
         print("Listening thread closed")
-
 
 try:
     # Send data
@@ -65,12 +68,14 @@ try:
             threading.Thread(target=threadx).start()
             threading.Thread(target=threadBeat).start()
 
+    messageCode = ''
     message = ''
     while connected and message != 'disconnect':
         message = input()
-        sock.sendto(message.encode(), address)
+        messageCode = "msg-%s" % res
+        sock.sendto((messageCode + ' ' + message).encode(), address)
+        res += 2
         heartBeatIntervalCheck = 0
-
 
 finally:
     print('closing socket')

@@ -8,7 +8,6 @@ configur = ConfigParser()
 configur.read('opt.conf')
 packets = configur.get('ServerSettings', 'PackageSize')
 
-
 sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
 hostname = socket.gethostname()
 IPAddr = socket.gethostbyname(hostname)
@@ -17,14 +16,14 @@ server_address = (IPAddr, 10000)
 print('starting up on {} port {}'.format(*server_address))
 sock.bind(server_address)
 
-
 connectionCode = 'com-0: '
 timeoutMsg = 'con-res 0xFE'
 SynAck = False
-res = -1
+res = 1
 timeout = 4
 packetsSecond = 0
-
+clientRes = res - 1
+clientTestData = ''
 
 def threadPacket():
     global packetsSecond
@@ -78,18 +77,23 @@ while True:
             if packetsSecond < int(packets):
                 print('\nWaiting for input...')
                 data, address = sock.recvfrom(4096)
-                if data == 'disconnect'.encode():
-                    print("Client closed the connection")
-                    break
-                packetsSecond += 1
-                print('Packets this second:')
-                print(packetsSecond)
-                res += 1
-                message = 'msg-%s %s' % (res, data)
-                res += 1
-                response = 'res-%s - I am server' % res
-                print(message)
-                sock.sendto(response.encode(), address)
+                clientTestData = 'msg-%s' % clientRes
+                if data.startswith(clientTestData.encode()) or data.startswith('con-h '.encode()):
+                    clientTestData = 'msg-%s - disconnect' % clientRes
+                    if data == clientTestData.encode():
+                        print("Client closed the connection")
+                        break
+                    else:
+                        packetsSecond += 1
+                        print('Packets this second:')
+                        print(packetsSecond)
+                        print(data)
+                        response = 'res-%s - I am server' % res
+                        clientRes += 2
+                        res += 2
+                        sock.sendto(response.encode(), address)
+                else:
+                    sock.sendto('Something went wrong'.encode(), address)
             else:
                 sock.sendto('Too many packages, please wait'.encode(), address)
                 time.sleep(1)
